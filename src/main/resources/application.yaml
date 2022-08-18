@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    username: admin
+    password: admin
+    url: jdbc:postgresql://localhost:5432/postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQL10Dialect
+        jdbc.batch_size: 20
+        order_updates: true
+    hibernate:
+      ddl-auto: update
+    generate-ddl: true
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: always
+      platform: postgres
+    properties:
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+  batch:
+    job:
+      enabled: false
