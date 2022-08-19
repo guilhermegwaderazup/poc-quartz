@@ -21,24 +21,24 @@ public class JobController {
     private final Scheduler scheduler;
 
     @PostMapping("/jobs")
-    public Job createJob(@RequestParam final String cron) throws SchedulerException {
+    public Job createJob(@RequestParam final String cron, @RequestHeader("x-tenant-id") final String tenantId) throws SchedulerException {
         final JobDetail jobDetail = JobBuilder.newJob(PostJob.class)
-                .withIdentity(UUID.randomUUID().toString())
+                .withIdentity(UUID.randomUUID().toString(), tenantId)
                 .storeDurably()
                 .build();
         scheduler.addJob(jobDetail, true);
         final Trigger trigger = TriggerBuilder.newTrigger()
                 .forJob(jobDetail)
-                .withIdentity(UUID.randomUUID().toString())
+                .withIdentity(UUID.randomUUID().toString(), tenantId)
                 .withSchedule(CronScheduleBuilder.cronSchedule(cron))
                 .build();
         scheduler.scheduleJob(trigger);
-        return getJobById(jobDetail.getKey().getName());
+        return getJobById(jobDetail.getKey().getName(), tenantId);
     }
 
     @PutMapping("/jobs/{id}")
-    public Job update(@PathVariable final String id, @RequestParam final String cron) throws SchedulerException {
-        final JobDetail jobDetail = scheduler.getJobDetail(new JobKey(id));
+    public Job update(@PathVariable final String id, @RequestParam final String cron, @RequestHeader("x-tenant-id") final String tenantId) throws SchedulerException {
+        final JobDetail jobDetail = scheduler.getJobDetail(new JobKey(id, tenantId));
         final var triggers = scheduler.getTriggersOfJob(jobDetail.getKey()).stream().map(Trigger::getKey).toList();
         scheduler.unscheduleJobs(triggers);
         final Trigger trigger = TriggerBuilder.newTrigger()
@@ -47,7 +47,7 @@ public class JobController {
                 .withSchedule(CronScheduleBuilder.cronSchedule(cron))
                 .build();
         scheduler.scheduleJob(trigger);
-        return getJobById(id);
+        return getJobById(id, tenantId);
     }
 
     @DeleteMapping("/jobs/{id}")
@@ -60,7 +60,7 @@ public class JobController {
         final List<Job> response = new ArrayList<>();
         for (JobKey jobKey : scheduler.getJobKeys(GroupMatcher.anyGroup())) {
             List<JobTrigger> triggers = getTriggers(jobKey);
-            response.add(new Job(jobKey.getName(), triggers));
+            response.add(new Job(jobKey.getName(), jobKey.getGroup(), triggers));
         }
         return response;
     }
@@ -78,14 +78,15 @@ public class JobController {
     }
 
     @GetMapping("/jobs/{id}")
-    public Job getJobById(@PathVariable final String id) throws SchedulerException {
-        JobDetail jobDetail = scheduler.getJobDetail(new JobKey(id));
+    public Job getJobById(@PathVariable final String id, @RequestHeader("x-tenant-id") final String tenantId) throws SchedulerException {
+        JobDetail jobDetail = scheduler.getJobDetail(new JobKey(id, tenantId));
         var triggers = getTriggers(jobDetail.getKey());
-        return new Job(id, triggers);
+        return new Job(id, jobDetail.getKey().getGroup(), triggers);
     }
 
     record Job(
             String id,
+            String group,
             List<JobTrigger> triggers
     ) {}
 
