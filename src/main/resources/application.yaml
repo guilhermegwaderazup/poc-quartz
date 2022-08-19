@@ -15,10 +15,11 @@ spring:
     hibernate:
       ddl-auto: update
     generate-ddl: true
+    open-in-view: false
   quartz:
     job-store-type: jdbc
     jdbc:
-      initialize-schema: always
+      initialize-schema: never
       platform: postgres
     properties:
       org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
